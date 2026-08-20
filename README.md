@@ -1,6 +1,6 @@
-DBMS Lab — ER Forensics: Find the Hidden Modeling Flaws
+# DBMS Lab — ER Forensics
 
-Question 1 — University Course Registration
+# Question 1 — University Course Registration
 
 The main problem is that Course is being used for both the course catalog and the actual course offering. A course can be offered in different semesters and can have multiple sections, so we need a separate "Section" entity.
 
@@ -33,7 +33,7 @@ Section
 
 ---
 
-Question 2 — Hospital Prescription System
+# Question 2 — Hospital Prescription System
 
 The main problem is that the model doesn't properly represent individual consultations and prescriptions.
 
@@ -68,7 +68,7 @@ Patient ──┐
 
 ---
 
-Question 3 — E-Commerce Order Fulfilment
+# Question 3 — E-Commerce Order Fulfilment
 
 The main problem is that order-specific information is stored at the wrong level.
 
@@ -106,7 +106,7 @@ Shipment ── FROM ──► Warehouse
 
 ---
 
-Question 4 — Project Staffing and Roles
+# Question 4 — Project Staffing and Roles
 
 The main problem is that information which depends on a particular employee-project assignment is stored on the wrong entities.
 
@@ -141,7 +141,7 @@ Project ◄── ProjectManagement ──► Employee
 
 ---
 
-Question 5 — Airline Booking and Seat Assignment
+# Question 5 — Airline Booking and Seat Assignment
 
 The main problem is that the model mixes up a flight schedule with a specific flight on a particular date.
 
@@ -177,12 +177,3 @@ FlightInstance ── USES ──► Aircraft
        ▲
        │
    Passenger
-
-Final Summary
-
-Question| Main Fix
-Q1| Add "Section"
-Q2| Add "Consultation" and "Prescription"
-Q3| Add "OrderLine" and fix "Shipment"
-Q4| Add "Assignment" and "ProjectManagement"
-Q5| Add "FlightInstance", "Booking", and "Segment"
