@@ -22,14 +22,24 @@ Issues & Fixes
    A classroom should belong to a particular section, not an instructor-course pair.
    Fix: "Section → HELD_IN → Classroom".
 
-Course
-  │
-  │ OFFERING_OF
-  ▼
-Section
- ├── ENROLLS ──► Student
- ├── TEACHES ──► Instructor
- └── HELD_IN ──► Classroom
+erDiagram
+    COURSE ||--o{ SECTION : "OFFERING_OF"
+    STUDENT }o--o{ SECTION : "ENROLLS"
+    INSTRUCTOR }o--o{ SECTION : "TEACHES"
+    SECTION }o--|| CLASSROOM : "HELD_IN"
+
+    COURSE {
+        int CourseID
+        string Title
+        int Credits
+    }
+
+    SECTION {
+        int SectionID
+        int SectionNo
+        string Semester
+        int Year
+    }
 
 ---
 
