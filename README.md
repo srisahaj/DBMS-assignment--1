@@ -491,26 +491,3 @@ erDiagram
 The important point is that `SeatNo` is attached to a **specific passenger + booking segment**, rather than to the passenger or aircraft globally.
 
 ---
-
-# Summary of the Minimal Corrections
-
-| Question | Main Missing/Incorrect Concept | Minimal Correction |
-|---|---|---|
-| Q1 | Course offerings/sections | Add `Section` and connect enrollment, teaching, and classroom allocation to Section |
-| Q2 | Consultation/prescription history | Add `Consultation`, `Prescription`, and prescription-specific medication details |
-| Q3 | Order lines and shipment lines | Add `OrderLine` and `ShipmentLine`; move address/date to the correct level |
-| Q4 | Assignment and history | Add `Assignment`, time-based hours, and `ProjectManagement` history |
-| Q5 | Flight occurrence, PNR, segment-specific assignment | Add `FlightOccurrence`, `Booking`, `FlightSegment`, and booking-segment seat assignment |
-
-## Conclusion
-
-The common modeling problem across all five questions is **placing information at the wrong level of granularity**.
-
-The corrected models separate:
-
-- reusable/master data from individual occurrences,
-- entity-level attributes from relationship-specific attributes,
-- current state from historical/time-dependent information,
-- and whole-order/whole-project information from line/assignment-level information.
-
-These changes preserve the business rules without unnecessarily redesigning unrelated parts of the original ER models.
