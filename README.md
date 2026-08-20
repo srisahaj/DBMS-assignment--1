@@ -1,493 +1,188 @@
-# DBMS-assignment--1
-# Question 1 — University Course Registration
+DBMS Lab — ER Forensics: Find the Hidden Modeling Flaws
 
-## Issue 1 — Course is being used for both the course and its offering
+Question 1 — University Course Registration
 
-**Flaw:** `Semester` and `Year` are stored directly in `Course`.
+The main problem is that Course is being used for both the course catalog and the actual course offering. A course can be offered in different semesters and can have multiple sections, so we need a separate "Section" entity.
 
-**Information lost:** A course can have multiple offerings, and multiple sections can exist in the same semester. A single `Course` occurrence cannot represent those separate offerings/sections correctly.
+Issues & Fixes
 
-**Minimal correction:** Keep `Course` as the catalog-level entity and we will introduce `Section` (or `CourseOffering`) for a particular offering.
+1. Course stores Semester and Year
+   This doesn't allow the same course to be offered in different semesters or years.
+   Fix: Create "Section (SectionID, SectionNo, Semester, Year)" and connect it to "Course".
 
-## Issue 2 — ENROLLS connects Student directly to Course
+2. Students enroll directly in Course
+   This doesn't tell us which section a student joined.
+   Fix: "Student → ENROLLS → Section".
 
-**Flaw:** A student registers for a `Course`, but the business rule says registration is for a particular section.
+3. Instructors teach Course directly
+   Different sections can have different instructors.
+   Fix: "Instructor → TEACHES → Section".
 
-**Information lost:** We cannot determine which section the student selected when the same course has multiple sections.
+4. Classroom is connected incorrectly
+   A classroom should belong to a particular section, not an instructor-course pair.
+   Fix: "Section → HELD_IN → Classroom".
 
-**Minimal correction:** Change the relationship to:
-
-`Student -- ENROLLS --> Section`
-
-## Issue 3 — TEACHES connects Instructor directly to Course
-
-**Flaw:** The instructor is assigned to the course rather than to a particular section.
-
-**Information lost:** Different sections of the same course may have different instructors, but the model cannot record that assignment.
-
-**Minimal correction:** Change the relationship to:
-
-`Instructor -- TEACHES --> Section`
-
-## Issue 4 — HELD_IN connects Course directly to Classroom
-
-**Flaw:** Classroom allocation is attached to the course instead of the section.
-
-**Information lost:** Two sections of the same course may be held in different classrooms, so the model cannot represent section-specific classroom allocation.
-
-**Minimal correction:** Change the relationship to:
-
-`Section -- HELD_IN --> Classroom`
-
-## Corrected ER Fragment
-
-erDiagram
-    STUDENT {
-        int StudentID PK
-        string Name
-        string Email
-    }
-
-    COURSE {
-        int CourseID PK
-        string Title
-        int Credits
-    }
-
-    SECTION {
-        int SectionID PK
-        int CourseID FK
-        string Semester
-        Year
-    }
-
-    INSTRUCTOR {
-        int InstructorID PK
-        string Name
-        string Department
-    }
-
-    CLASSROOM {
-        string RoomNo PK
-        string Building
-    }
-
-    STUDENT }o--o{ SECTION : ENROLLS
-    COURSE ||--o{ SECTION : OFFERED_AS
-    INSTRUCTOR }o--o{ SECTION : TEACHES
-    SECTION }o--|| CLASSROOM : HELD_IN
+Course
+  │
+  │ OFFERING_OF
+  ▼
+Section
+ ├── ENROLLS ──► Student
+ ├── TEACHES ──► Instructor
+ └── HELD_IN ──► Classroom
 
 ---
 
-# Question 2 — Hospital Prescription System
+Question 2 — Hospital Prescription System
 
-## Business Rules
+The main problem is that the model doesn't properly represent individual consultations and prescriptions.
 
-- A patient may consult the same doctor many times.
-- Different consultations may result in different prescriptions.
-- The dosage of the same medicine may differ by patient and visit.
-- The same medicine may be prescribed again with a different frequency or duration.
-- A prescription must identify who prescribed what, to whom, and when.
+Issues & Fixes
 
-## Issue 1 — CONSULTS cannot represent repeated visits
+1. Consultation is missing
+   A patient can visit the same doctor many times, but the model can't distinguish the visits.
+   Fix: Add "Consultation (ConsultationID, Date)".
 
-**Flaw:** `CONSULTS` directly connects Patient and Doctor.
+2. Dosage is stored in Medicine
+   Dosage can be different for different patients and visits.
+   Fix: Store "Dosage", "Frequency", and "Duration" in "Prescription".
 
-**Information lost:** The same patient can consult the same doctor multiple times, but there is no entity representing each individual visit. Therefore, the date/time and history of each consultation cannot be stored separately.
+3. Prescribing and taking are separate
+   There is no way to know which doctor prescribed a medicine to which patient.
+   Fix: Create a "Prescription" entity connecting Doctor, Patient, and Medicine.
 
-**Minimal correction:** Introduce a `Consultation` entity.
+4. Prescription isn't linked to a visit
+   We need to know which consultation resulted in the prescription.
+   Fix: "Consultation → RESULTS_IN → Prescription".
 
-`Patient -- Consultation -- Doctor`
-
-## Issue 2 — PRESCRIBES does not identify the patient
-
-**Flaw:** `PRESCRIBES` connects Doctor directly to Medicine.
-
-**Information lost:** The model cannot determine which patient received the medicine.
-
-**Minimal correction:** Make prescriptions belong to a particular consultation/patient and doctor.
-
-`Consultation -- Prescription -- Medicine`
-
-## Issue 3 — TAKES does not identify the consultation/prescription
-
-**Flaw:** `TAKES` directly connects Patient and Medicine.
-
-**Information lost:** If the same medicine is prescribed multiple times, the model cannot distinguish one prescription from another or associate it with the correct visit.
-
-**Minimal correction:** Connect medicine to a prescription/consultation rather than directly to the patient.
-
-## Issue 4 — Dosage is incorrectly stored as a Medicine attribute
-
-**Flaw:** `Dosage` is stored in `Medicine`.
-
-**Information lost:** Dosage, frequency, and duration are not properties of the medicine itself. They can vary for different patients and different visits.
-
-**Minimal correction:** Move prescription-specific instructions to a prescription line/medication entity.
-
-## Corrected ER Fragment
-
-```mermaid
-erDiagram
-    PATIENT {
-        int PatientID PK
-        string Name
-        date DOB
-    }
-
-    DOCTOR {
-        int DoctorID PK
-        string Name
-        string Specialization
-    }
-
-    CONSULTATION {
-        int ConsultationID PK
-        int PatientID FK
-        int DoctorID FK
-        datetime ConsultationTime
-    }
-
-    PRESCRIPTION {
-        int PrescriptionID PK
-        int ConsultationID FK
-        datetime PrescribedAt
-    }
-
-    MEDICINE {
-        int MedicineID PK
-        string Name
-        string Manufacturer
-    }
-
-    PRESCRIPTION_ITEM {
-        int PrescriptionID FK
-        int MedicineID FK
-        string Dosage
-        string Frequency
-        string Duration
-    }
-
-    PATIENT ||--o{ CONSULTATION : HAS
-    DOCTOR ||--o{ CONSULTATION : CONDUCTS
-    CONSULTATION ||--o{ PRESCRIPTION : GENERATES
-    PRESCRIPTION ||--|{ PRESCRIPTION_ITEM : CONTAINS
-    MEDICINE ||--o{ PRESCRIPTION_ITEM : APPEARS_IN
-```
-
-This preserves repeated consultations, prescription history, patient-specific dosage, and time-dependent instructions.
+Patient ──┐
+          ▼
+    Consultation
+          │
+     RESULTS_IN
+          ▼
+     Prescription
+       ▲      ▲
+       │      │
+    Doctor  Medicine
 
 ---
 
-# Question 3 — E-Commerce Order Fulfilment
+Question 3 — E-Commerce Order Fulfilment
 
-## Business Rules
+The main problem is that order-specific information is stored at the wrong level.
 
-- A customer may use a different delivery address for every order.
-- Quantity is specific to an order line, not to the product itself.
-- One order may be split into several shipments.
-- A single order line may be partially shipped from different warehouses.
-- Each shipment has its own dispatch date and carrier information.
+Issues & Fixes
 
-## Issue 1 — ShippingAddress is stored in Customer
+1. ShippingAddress is on Customer
+   A customer may use different addresses for different orders.
+   Fix: Move it to "Order".
 
-**Flaw:** `ShippingAddress` is an attribute of `Customer`.
+2. Quantity is on Product
+   The same product can have different quantities in different orders.
+   Fix: Create "OrderLine (OrderID, ProductID, Quantity)".
 
-**Information lost:** A customer may use a different address for every order. Storing only one address on Customer loses the historical address used for previous orders.
+3. Shipment is connected to the whole Order
+   An order can be split into multiple shipments.
+   Fix: Connect "Shipment" to "OrderLine".
 
-**Minimal correction:** Move `ShippingAddress` to `Order`.
+4. ShipmentDate is on Order
+   Different shipments can have different dispatch dates.
+   Fix: Move it to "Shipment" as "DispatchDate".
 
-## Issue 2 — Quantity is stored in Product
-
-**Flaw:** `Quantity` is an attribute of `Product`.
-
-**Information lost:** Quantity belongs to a particular order line. The same product can be ordered in different quantities by different customers or in different orders.
-
-**Minimal correction:** Move `Quantity` to the Order–Product associative entity, represented as `OrderLine`.
-
-## Issue 3 — Shipment is connected only to Order
-
-**Flaw:** `SHIPPED_BY` connects Order to Shipment, but there is no relationship between Shipment and individual OrderLines.
-
-**Information lost:** The model cannot represent that one order line is partially fulfilled by different shipments or warehouses.
-
-**Minimal correction:** Introduce `ShipmentLine` connecting `Shipment` and `OrderLine`, with `QuantityShipped`.
-
-## Issue 4 — Shipment date is stored at Order level
-
-**Flaw:** `ShipmentDate` is stored in `Order`.
-
-**Information lost:** An order can have several shipments, and each shipment has its own dispatch date. One date at order level cannot represent the dates of all shipments.
-
-**Minimal correction:** Move `ShipmentDate` to `Shipment` as `DispatchDate`.
-
-## Corrected ER Fragment
-
-```mermaid
-erDiagram
-    CUSTOMER {
-        int CustomerID PK
-        string Name
-    }
-
-    ORDER {
-        int OrderID PK
-        date OrderDate
-        string ShippingAddress
-        int CustomerID FK
-    }
-
-    PRODUCT {
-        int ProductID PK
-        string Name
-        decimal Price
-    }
-
-    ORDER_LINE {
-        int OrderLineID PK
-        int OrderID FK
-        int ProductID FK
-        int Quantity
-    }
-
-    SHIPMENT {
-        int ShipmentID PK
-        int OrderID FK
-        string Carrier
-        datetime DispatchDate
-    }
-
-    WAREHOUSE {
-        int WarehouseID PK
-        string City
-    }
-
-    SHIPMENT_LINE {
-        int ShipmentID FK
-        int OrderLineID FK
-        int WarehouseID FK
-        int QuantityShipped
-    }
-
-    CUSTOMER ||--o{ ORDER : PLACES
-    ORDER ||--|{ ORDER_LINE : CONTAINS
-    PRODUCT ||--o{ ORDER_LINE : ORDERED_AS
-    ORDER ||--o{ SHIPMENT : HAS
-    SHIPMENT ||--|{ SHIPMENT_LINE : FULFILLS
-    ORDER_LINE ||--o{ SHIPMENT_LINE : SPLIT_ACROSS
-    WAREHOUSE ||--o{ SHIPMENT_LINE : FULFILLS_FROM
-```
+Customer
+   │
+  PLACES
+   ▼
+Order
+   │
+CONTAINS
+   ▼
+OrderLine
+   │
+SHIPPED_BY
+   ▼
+Shipment ── FROM ──► Warehouse
 
 ---
 
-# Question 4 — Project Staffing and Roles
+Question 4 — Project Staffing and Roles
 
-## Business Rules
+The main problem is that information which depends on a particular employee-project assignment is stored on the wrong entities.
 
-- An employee may join, leave, and later rejoin the same project.
-- The employee's role may be different on different projects.
-- Hours are recorded per employee-project assignment and time period.
-- Project managers may change during the lifetime of a project.
-- Management history must be retained for audit purposes.
+Issues & Fixes
 
-## Issue 1 — Role is stored in Employee
+1. HoursWorked is on Project
+   Hours should be tracked for each employee and project.
+   Fix: Create "Assignment".
 
-**Flaw:** `Role` is an attribute of `Employee`.
+2. Employees can't leave and rejoin a project
+   The relationship has no dates.
+   Fix: Add "StartDate" and "EndDate" to "Assignment".
 
-**Information lost:** An employee can have different roles on different projects. A single role on Employee cannot represent project-specific roles.
+3. Role is stored on Employee
+   An employee can have different roles on different projects.
+   Fix: Move "Role" to "Assignment".
 
-**Minimal correction:** Move `Role` to the project assignment entity.
+4. Project manager history is missing
+   The model doesn't track who manages a project or when.
+   Fix: Add "ProjectManagement (ProjectID, EmpID, StartDate, EndDate)".
 
-## Issue 2 — HoursWorked is stored in Project
+Employee ──► Department
 
-**Flaw:** `HoursWorked` is an attribute of `Project`.
+Employee ◄── Assignment ──► Project
+             │
+             ├── Role
+             ├── HoursWorked
+             ├── StartDate
+             └── EndDate
 
-**Information lost:** Hours belong to an employee-project assignment and a time period. A project-level value cannot tell which employee worked how many hours or during which period.
-
-**Minimal correction:** Move hours to an assignment/time-record structure.
-
-## Issue 3 — WORKS_ON cannot represent repeated assignments
-
-**Flaw:** A direct Employee–Project relationship does not preserve multiple periods of assignment.
-
-**Information lost:** If an employee leaves a project and later rejoins it, the model cannot store the two separate assignment periods.
-
-**Minimal correction:** Replace/upgrade `WORKS_ON` into an `Assignment` entity containing `StartDate` and `EndDate`.
-
-## Issue 4 — MANAGED_BY cannot preserve management history
-
-**Flaw:** A direct Employee–Project `MANAGED_BY` relationship represents the current manager but has no time period.
-
-**Information lost:** When managers change, previous managers and their management periods cannot be retained for audit.
-
-**Minimal correction:** Introduce `ProjectManagement` with `StartDate` and `EndDate`.
-
-## Corrected ER Fragment
-
-```mermaid
-erDiagram
-    EMPLOYEE {
-        int EmpID PK
-        string Name
-    }
-
-    PROJECT {
-        int ProjectID PK
-        string Title
-    }
-
-    DEPARTMENT {
-        int DeptID PK
-        string Name
-    }
-
-    ASSIGNMENT {
-        int AssignmentID PK
-        int EmpID FK
-        int ProjectID FK
-        string Role
-        date StartDate
-        date EndDate
-    }
-
-    WORK_HOURS {
-        int AssignmentID FK
-        string Period
-        decimal HoursWorked
-    }
-
-    PROJECT_MANAGEMENT {
-        int ManagementID PK
-        int ProjectID FK
-        int ManagerEmpID FK
-        date StartDate
-        date EndDate
-    }
-
-    EMPLOYEE }o--|| DEPARTMENT : BELONGS_TO
-    EMPLOYEE ||--o{ ASSIGNMENT : HAS
-    PROJECT ||--o{ ASSIGNMENT : HAS
-    ASSIGNMENT ||--o{ WORK_HOURS : RECORDS
-    PROJECT ||--o{ PROJECT_MANAGEMENT : HAS_HISTORY
-    EMPLOYEE ||--o{ PROJECT_MANAGEMENT : MANAGES
-```
+Project ◄── ProjectManagement ──► Employee
 
 ---
 
-# Question 5 — Airline Booking and Seat Assignment
+Question 5 — Airline Booking and Seat Assignment
 
-## Business Rules
+The main problem is that the model mixes up a flight schedule with a specific flight on a particular date.
 
-- A flight number operates on many dates.
-- One PNR may contain several passengers and several flight segments.
-- Aircraft assignment may change for one particular flight occurrence.
-- A seat is assigned to a passenger for a specific flight occurrence.
-- The same passenger may have different seats on different segments.
+Issues & Fixes
 
-## Issue 1 — Flight and Flight Occurrence are conflated
+1. Flight mixes schedule and actual flight
+   The same flight number can operate on many dates.
+   Fix: Separate "Flight" and "FlightInstance".
 
-**Flaw:** `Flight` contains `FlightNo`, `Date`, and `DepartureTime` in one entity.
+2. Booking/PNR is missing
+   A booking can contain multiple passengers and flight segments.
+   Fix: Add "Booking (PNR, BookingDate)".
 
-**Information lost:** A flight number is a recurring service that operates on many dates. The model should distinguish the flight definition/number from a particular occurrence of that flight.
+3. Aircraft is connected to Flight
+   Different dates can use different aircraft.
+   Fix: Connect Aircraft to "FlightInstance".
 
-**Minimal correction:** Introduce `FlightOccurrence` for a particular date/time.
+4. Seat assignment is incorrect
+   A passenger can have different seats on different flight segments.
+   Fix: Add "Segment (PNR, InstanceID, PassengerID, SeatNo)".
 
-`Flight -- HAS --> FlightOccurrence`
+Flight
+  │
+INSTANCE_OF
+  ▼
+FlightInstance ── USES ──► Aircraft
+       │
+       ▼
+    Booking
+       │
+       ▼
+    Segment
+       ▲
+       │
+   Passenger
 
-## Issue 2 — BOOKS directly connects Passenger and Flight
+Final Summary
 
-**Flaw:** There is no `PNR/Booking` entity.
-
-**Information lost:** One PNR may contain several passengers and several flight segments. A direct Passenger–Flight relationship cannot represent the grouping represented by one booking.
-
-**Minimal correction:** Introduce `Booking/PNR` and connect passengers and booked segments through it.
-
-## Issue 3 — Aircraft assignment is attached to the wrong level
-
-**Flaw:** `USES` connects Aircraft directly to the recurring Flight.
-
-**Information lost:** Aircraft may change for a particular flight occurrence. An aircraft assigned to one date should not imply that the same aircraft is permanently assigned to every occurrence of the flight number.
-
-**Minimal correction:** Connect `Aircraft` to `FlightOccurrence`.
-
-## Issue 4 — SEATED_ON connects Passenger to Aircraft
-
-**Flaw:** The seat assignment is modeled between Passenger and Aircraft.
-
-**Information lost:** A seat belongs to a passenger for a specific flight occurrence/segment. The same passenger can have different seats on different segments.
-
-**Minimal correction:** Store `SeatNo` on the relationship/entity that connects a passenger's booking segment to the specific flight occurrence.
-
-## Corrected ER Fragment
-
-```mermaid
-erDiagram
-    PASSENGER {
-        int PassengerID PK
-        string Name
-    }
-
-    BOOKING {
-        string PNR PK
-        datetime BookingDate
-    }
-
-    FLIGHT {
-        string FlightNo PK
-    }
-
-    FLIGHT_OCCURRENCE {
-        int OccurrenceID PK
-        string FlightNo FK
-        date FlightDate
-        time DepartureTime
-        int AircraftID FK
-    }
-
-    AIRCRAFT {
-        int AircraftID PK
-        string Model
-    }
-
-    AIRPORT {
-        string AirportCode PK
-        string City
-    }
-
-    FLIGHT_SEGMENT {
-        int SegmentID PK
-        int OccurrenceID FK
-        string OriginCode FK
-        string DestinationCode FK
-    }
-
-    BOOKING_PASSENGER {
-        string PNR FK
-        int PassengerID FK
-    }
-
-    BOOKING_SEGMENT {
-        string PNR FK
-        int SegmentID FK
-        int PassengerID FK
-        string SeatNo
-    }
-
-    FLIGHT ||--o{ FLIGHT_OCCURRENCE : OPERATES_AS
-    AIRCRAFT ||--o{ FLIGHT_OCCURRENCE : ASSIGNED_TO
-
-    FLIGHT_OCCURRENCE ||--|{ FLIGHT_SEGMENT : HAS
-    AIRPORT ||--o{ FLIGHT_SEGMENT : ORIGIN
-    AIRPORT ||--o{ FLIGHT_SEGMENT : DESTINATION
-
-    BOOKING ||--|{ BOOKING_PASSENGER : INCLUDES
-    PASSENGER ||--o{ BOOKING_PASSENGER : INCLUDED_IN
-
-    BOOKING ||--|{ BOOKING_SEGMENT : CONTAINS
-    PASSENGER ||--o{ BOOKING_SEGMENT : HAS
-    FLIGHT_SEGMENT ||--o{ BOOKING_SEGMENT : BOOKED_AS
-```
-
-The important point is that `SeatNo` is attached to a **specific passenger + booking segment**, rather than to the passenger or aircraft globally.
-
----
+Question| Main Fix
+Q1| Add "Section"
+Q2| Add "Consultation" and "Prescription"
+Q3| Add "OrderLine" and fix "Shipment"
+Q4| Add "Assignment" and "ProjectManagement"
+Q5| Add "FlightInstance", "Booking", and "Segment"
