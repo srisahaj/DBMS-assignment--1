@@ -65,16 +65,32 @@ Issues & Fixes
    We need to know which consultation resulted in the prescription.
    Fix: "Consultation → RESULTS_IN → Prescription".
 
-Patient ──┐
-          ▼
-    Consultation
-         │
-     RESULTS_IN
-         ▼
-     Prescription
-       ▲      ▲
-       │      │
-    Doctor  Medicine
+erDiagram
+    PATIENT ||--o{ CONSULTATION : "HAS"
+    DOCTOR ||--o{ CONSULTATION : "CONDUCTS"
+    CONSULTATION ||--o{ PRESCRIPTION : "RESULTS_IN"
+    PATIENT ||--o{ PRESCRIPTION : "RECEIVES"
+    DOCTOR ||--o{ PRESCRIPTION : "PRESCRIBES"
+    MEDICINE ||--o{ PRESCRIPTION : "CONTAINS"
+
+    CONSULTATION {
+        int ConsultationID
+        date Date
+    }
+
+    PRESCRIPTION {
+        int PrescriptionID
+        date DatePrescribed
+        string Dosage
+        string Frequency
+        string Duration
+    }
+
+    MEDICINE {
+        int MedicineID
+        string Name
+        string Manufacturer
+    }
 
 ---
 
@@ -100,19 +116,30 @@ Issues & Fixes
    Different shipments can have different dispatch dates.
    Fix: Move it to "Shipment" as "DispatchDate".
 
-Customer
-   │
-  PLACES
-   ▼
-Order
-   │
-CONTAINS
-   ▼
-OrderLine
-   │
-SHIPPED_BY
-   ▼
-Shipment ── FROM ──► Warehouse
+erDiagram
+    CUSTOMER ||--o{ ORDER : "PLACES"
+    ORDER ||--|{ ORDER_LINE : "CONTAINS"
+    ORDER_LINE ||--o{ SHIPMENT : "SHIPPED_BY"
+    WAREHOUSE ||--o{ SHIPMENT : "FROM"
+    PRODUCT ||--o{ ORDER_LINE : "INCLUDES"
+
+    ORDER {
+        int OrderID
+        date OrderDate
+        string ShippingAddress
+    }
+
+    ORDER_LINE {
+        int OrderID
+        int ProductID
+        int Quantity
+    }
+
+    SHIPMENT {
+        int ShipmentID
+        string Carrier
+        date DispatchDate
+    }
 
 ---
 
@@ -138,16 +165,29 @@ Issues & Fixes
    The model doesn't track who manages a project or when.
    Fix: Add "ProjectManagement (ProjectID, EmpID, StartDate, EndDate)".
 
-Employee ──► Department
+erDiagram
+    EMPLOYEE }o--|| DEPARTMENT : "BELONGS_TO"
+    EMPLOYEE ||--o{ ASSIGNMENT : "WORKS_ON"
+    PROJECT ||--o{ ASSIGNMENT : "HAS"
+    PROJECT ||--o{ PROJECT_MANAGEMENT : "MANAGED_BY"
+    EMPLOYEE ||--o{ PROJECT_MANAGEMENT : "MANAGES"
 
-Employee ◄── Assignment ──► Project
-             │
-             ├── Role
-             ├── HoursWorked
-             ├── StartDate
-             └── EndDate
+    ASSIGNMENT {
+        int EmpID
+        int ProjectID
+        string Role
+        string Period
+        float HoursWorked
+        date StartDate
+        date EndDate
+    }
 
-Project ◄── ProjectManagement ──► Employee
+    PROJECT_MANAGEMENT {
+        int ProjectID
+        int EmpID
+        date StartDate
+        date EndDate
+    }
 
 ---
 
@@ -173,17 +213,33 @@ Issues & Fixes
    A passenger can have different seats on different flight segments.
    Fix: Add "Segment (PNR, InstanceID, PassengerID, SeatNo)".
 
-Flight
-  │
-INSTANCE_OF
-  ▼
-FlightInstance ── USES ──► Aircraft
-       │
-       ▼
-    Booking
-       │
-       ▼
-    Segment
-       ▲
-       │
-   Passenger
+erDiagram
+    FLIGHT ||--o{ FLIGHT_INSTANCE : "INSTANCE_OF"
+    AIRCRAFT ||--o{ FLIGHT_INSTANCE : "USES"
+    BOOKING }o--o{ PASSENGER : "HAS"
+    BOOKING }o--o{ FLIGHT_INSTANCE : "INCLUDES"
+    BOOKING ||--o{ SEGMENT : "CONTAINS"
+    PASSENGER ||--o{ SEGMENT : "ASSIGNED_TO"
+    FLIGHT_INSTANCE ||--o{ SEGMENT : "HAS"
+
+    FLIGHT {
+        string FlightNo
+    }
+
+    FLIGHT_INSTANCE {
+        int InstanceID
+        date Date
+        time DepartureTime
+    }
+
+    BOOKING {
+        string PNR
+        date BookingDate
+    }
+
+    SEGMENT {
+        string PNR
+        int InstanceID
+        int PassengerID
+        string SeatNo
+    }
