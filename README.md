@@ -65,13 +65,13 @@ Issues & Fixes
    We need to know which consultation resulted in the prescription.
    Fix: "Consultation → RESULTS_IN → Prescription".
 
-### Patient ──┐
-              ▼
-   #### Consultation
-       ### │
-    ### RESULTS_IN
-       ###▼
-     ### Prescription
+Patient ──┐
+          ▼
+    Consultation
+         │
+     RESULTS_IN
+         ▼
+     Prescription
        ▲      ▲
        │      │
     Doctor  Medicine
